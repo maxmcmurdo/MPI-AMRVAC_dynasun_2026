@@ -284,64 +284,15 @@ contains
  
     delta = 3e9/unit_length
 
-    !do ix1 = ixOmin1,ixOmax1
-    !  if (x(ix1,1) < 1 + delta) then 
-    !    w(ix1,wkminus_) = 1.67d-2*(0.5d0*cos(pi*(x(ix1,1)-1.0d0)/delta)+0.5d0)
-    !  else
-    !    w(ix1,wkminus_) = 0.0d0
-    !  end if
-    !end do
-
-    !do ix1 = ixOmin1,ixOmax1
-    !  if (x(ix1,1) > xprobmax1 - delta) then
-    !    w(ix1,wkplus_) = 0.005d0*1.67d-2*(0.5d0*cos(pi*(x(ix1,1)-xprobmax1)/delta)+0.5d0) 
-    !  else 
-    !    w(ix1,wkplus_) = 0.d0
-    !  end if
-    !end do
-
-    !> Luka found this value stabilises the atmosphere with radiative losses on
-    !do ix1 = ixOmin1,ixOmax1
-    !  if (x(ix1,1) < 1 + delta) then 
-    !    w(ix1,wkminus_) = 1.23d-2*(0.5d0*cos(pi*(x(ix1,1)-1.0d0)/delta)+0.5d0)
-    !    w(ix1,wAminus_) = 1.23d-2*(0.5d0*cos(pi*(x(ix1,1)-1.0d0)/delta)+0.5d0)
-    !  else
-    !    w(ix1,wkminus_) = 0.0d0
-    !    w(ix1,wAminus_) = 0.0d0
-    !  end if
-    !end do
-
     do ix1 = ixOmin1,ixOmax1
       if (x(ix1,1) < 1 + delta) then 
-        !w(ix1,wkplus_) = 1.67d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0)  
-        w(ix1,wAminus_) = 1.67d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0)  
+        w(ix1,wkminus_) = 1.67d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0)  
+        !w(ix1,wAminus_) = 1.67d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0)  
       else
-        !w(ix1,wkplus_) = 1.67d-2*0.2d0 !> usually zero but now has energy everywhere initially
-        w(ix1,wAminus_) = 1.67d-2*0.2d0 !> usually zero but now has energy everywhere initially
+        w(ix1,wkminus_) = 1.67d-2*0.2d0 !> usually zero but now has energy everywhere initially
+        !w(ix1,wAminus_) = 1.67d-2*0.2d0 !> usually zero but now has energy everywhere initially
       end if
     end do
-
-    !do ix1 = ixOmin1,ixOmax1
-    !  if (x(ix1,1) > xprobmax1 - delta) then
-    !    w(ix1,wAplus_) = 1.d-7*1.67d-2*0.4d0*(cos(pi*(x(ix1,1)-xprobmax1)/delta)+1.5d0) 
-    !  else 
-    !    w(ix1,wAplus_) = 1.d-7*1.67d-2*0.2d0
-    !  end if
-    !end do
-
-    !do ix1 = ixOmin1,ixOmax1
-    !  if (x(ix1,1) < 1 + delta) then 
-    !    w(ix1,wkminus_) = 5.d0*1.23d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0) 
-    !    w(ix1,wAminus_) = 5.d0*1.23d-2*0.4d0*(cos(pi*(x(ix1,1)-1.0d0)/delta)+1.5d0) 
-    !  else
-    !    w(ix1,wkminus_) = 5.d0*1.23d-2*0.2d0 !> usually zero but now has energy everywhere initially
-    !    w(ix1,wAminus_) = 5.d0*1.23d-2*0.2d0 !> usually zero but now has energy everywhere initially
-    !  end if
-    !end do
-
-    !w(ixO^S,wkminus_) = 1.d-6
-    !w(ixO^S,wkplus_) = 0.d0!1.d-8 + 1.d-6*exp(-(x(ixO^S,1)-1.1435d0)**2.d0/0.05d0**2.d0)
-    !w(ixO^S,wAplus_) = 1.d-8 + 1.d-6*exp(-(x(ixO^S,1)-1.1435d0)**2.d0/0.05d0**2.d0)
     
     call uawsom_to_conserved(ixI^L,ixO^L,w,x)
 
@@ -385,25 +336,6 @@ contains
 
 
   subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
-    ! In 3D BC govern: rho, m1, m2, m3, e, b1, b2, b3, wA+/-, wk+/-
-    ! In 1D BC govern: rho, m1, e, b1, wA+/-, wk+/- (8 items)
-    ! Currently, there is no wA+/- or wk+, so need below to cover: rho, m1, e, b1, wk-
-
-    ! TVD has conditions for rho based off his dT/dz = 0 conversion to d(Eth/dens*(gamma-1))/dz = 0. We can do this by setting P by extrapolating
-    ! the HSE using FD, then we can assume isothermality by saying T = P/rho, by setting rho as if the ghost cells maintain isothermality.
-
-    ! Momentum must be set to 0 at the bottom boundary 
-    ! Momentum must be set with a zero gradient at top boundary allows mass to flow out of the box
-
-    ! Energy is set to not include the wave energy at the bottom boundary 
-    ! Energy is set to include the wave energy at the top boundary 
-
-    ! Magnetic field b1 is kept constant in all cases and does not change throughout the simulation so needs no BC (I think).
-
-    ! TODO: figure out why Norbert had:       w(ixOmin1,mom(:)) = w(ixOmin1-1,mom(:))
-    !                                         w(ixOmax1,mom(:)) = w(ixOmin1-2,mom(:))
-    ! for the top boundary.
-
     use mod_global_parameters
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
@@ -426,12 +358,6 @@ contains
     case(1)
 
       ixIMmin1=ixOmax1+1;ixIMmax1=ixOmax1+4;
-      
-      !do ix1=ixOmin1,ixOmax1
-      ! do idir=1,ndir
-      !  w(ix1^%1ixO^S,mom(idir)) = w(ixOmax1+1^%1ixO^S,mom(idir)) ! zero gradient boundary condition at LH boundary
-      ! end do
-      !end do
 
       w(ixOmax1^%1ixO^S,mag(1)) = w(ixOmax1+1^%1ixO^S,mag(1)) 
       w(ixOmin1^%1ixO^S,mag(1)) = w(ixOmax1+1^%1ixO^S,mag(1))
@@ -439,14 +365,14 @@ contains
       w(ixOmax1^%1ixO^S,mom(1)) = w(ixOmax1+1^%1ixO^S,mom(1)) 
       w(ixOmin1^%1ixO^S,mom(1)) = w(ixOmax1+1^%1ixO^S,mom(1))
 
-      w(ixOmin1^%1ixO^S,wkminus_) = w(ixOmax1+1^%1ixO^S,wkminus_) ! Need wkminus in the ghost cells such that energy is calculated properly
-      w(ixOmax1^%1ixO^S,wkminus_) = w(ixOmax1+1^%1ixO^S,wkminus_)
+      w(ixOmin1^%1ixO^S,wkminus_) = 1.67d-2 !w(ixOmax1+1^%1ixO^S,wkminus_) ! Need wkminus in the ghost cells such that energy is calculated properly
+      w(ixOmax1^%1ixO^S,wkminus_) = 1.67d-2 !w(ixOmax1+1^%1ixO^S,wkminus_)
 
       w(ixOmin1^%1ixO^S,wkplus_) = w(ixOmax1+1^%1ixO^S,wkplus_)  ! wk+ open BBC to allow outflow (equally could set to zero)
       w(ixOmax1^%1ixO^S,wkplus_) = w(ixOmax1+1^%1ixO^S,wkplus_)
 
-      w(ixOmin1^%1ixO^S,wAminus_) = 1.67d-2 !w(ixOmax1+1^%1ixO^S,wAminus_) ! Need wAminus in the ghost cells such that energy is calculated properly
-      w(ixOmax1^%1ixO^S,wAminus_) = 1.67d-2 !w(ixOmax1+1^%1ixO^S,wAminus_)
+      w(ixOmin1^%1ixO^S,wAminus_) = w(ixOmax1+1^%1ixO^S,wAminus_) ! Need wAminus in the ghost cells such that energy is calculated properly
+      w(ixOmax1^%1ixO^S,wAminus_) = w(ixOmax1+1^%1ixO^S,wAminus_)
 
       w(ixOmin1^%1ixO^S,wAplus_) = w(ixOmax1+1^%1ixO^S,wAplus_)
       w(ixOmax1^%1ixO^S,wAplus_) = w(ixOmax1+1^%1ixO^S,wAplus_)
@@ -458,12 +384,9 @@ contains
       
       ! Pressure update with constant gravity. Uses HSE to extrapolate back into the ghost cells the correct pressure
       ! - sign might appear wrong way round but gravity is positive so swaps round +-
-      Pin(ixOmax1^%1ixO^S) = pth(2+ixOmax1^%1ixO^S) - 2*h1*usr_grav*w(ixOmax1+1^%1ixO^S,rho_)
+      Pin(ixOmax1^%1ixO^S) = pth(2+ixOmax1^%1ixO^S) - 2*h1*usr_grav*(SRadius/x(ixOmax1+1^%1ixO^S,1))**2*w(ixOmax1+1^%1ixO^S,rho_)
 
-      ! Old density update assumes isothermality in the boundary
-      !w(ixOmax1^%1ixO^S,rho_) = Pin(ixOmax1^%1ixO^S)/(Tmp(ixOmax1^%1ixO^S))
-      !w(ixOmax1^%1ixO^S,rho_) = w(ixOmax1+1^%1ixO^S,rho_)
-      w(ixOmax1^%1ixO^S,rho_) = w(ixOmax1+2^%1ixO^S,rho_) - 2*h1*usr_grav*w(ixOmax1+1^%1ixO^S,rho_)**2.d0/pth(ixOmax1+1^%1ixO^S)
+      w(ixOmax1^%1ixO^S,rho_) = w(ixOmax1+2^%1ixO^S,rho_) - 2*h1*usr_grav*(SRadius/x(ixOmax1+1^%1ixO^S,1))**2*w(ixOmax1+1^%1ixO^S,rho_)**2.d0/pth(ixOmax1+1^%1ixO^S)
 
       Tmp(ixOmax1^%1ixO^S) = Pin(ixOmax1^%1ixO^S)/(w(ixOmax1^%1ixO^S,rho_))
 
@@ -478,15 +401,9 @@ contains
       h1 = x(ixOmax1,1) - x(ixOmin1,1)
       
       ! Pressure update with constant gravity extends the HSE into the ghost cells again
-      Pin(ixOmin1^%1ixO^S) = pth(ixOmax1+1^%1ixO^S) - 2*h1*usr_grav*w(ixOmax1^%1ixO^S,rho_)
-
-      ! Temp calculated to use for density later
-      !Tmp(ixOmin1^%1ixO^S) = Pin(ixOmax1^%1ixO^S)/(w(ixOmax1^%1ixO^S,rho_))
+      Pin(ixOmin1^%1ixO^S) = pth(ixOmax1+1^%1ixO^S) - 2*h1*usr_grav*(SRadius/x(ixOmax1^%1ixO^S,1))**2*w(ixOmax1^%1ixO^S,rho_)
       
-      ! Old density update based on Norberts commented out work 
-      !w(ixOmin1^%1ixO^S,rho_) = Pin(ixOmin1^%1ixO^S)/Tmp(ixOmin1^%1ixO^S)
-      !w(ixOmin1^%1ixO^S,rho_) = w(ixOmax1+1^%1ixO^S,rho_)
-      w(ixOmin1^%1ixO^S,rho_) = w(ixOmax1+1^%1ixO^S,rho_) - 2*h1*usr_grav*w(ixOmax1^%1ixO^S,rho_)**2.d0/Pin(ixOmax1^%1ixO^S)
+      w(ixOmin1^%1ixO^S,rho_) = w(ixOmax1+1^%1ixO^S,rho_) - 2*h1*usr_grav*(SRadius/x(ixOmax1^%1ixO^S,1))**2*w(ixOmax1^%1ixO^S,rho_)**2.d0/Pin(ixOmax1^%1ixO^S)
 
       Tmp(ixOmin1^%1ixO^S) = Pin(ixOmin1^%1ixO^S)/(w(ixOmin1^%1ixO^S,rho_))
 
@@ -496,12 +413,6 @@ contains
                    0.5d0*(w(ixOmin1^%1ixO^S,mom(1))**2 + w(ixOmin1^%1ixO^S,mom(2))**2 + w(ixOmin1^%1ixO^S,mom(3))**2)/w(ixOmin1^%1ixO^S,rho_) + &
                    w(ixOmin1^%1ixO^S,wkplus_) + w(ixOmin1^%1ixO^S,wkminus_) + &
                    w(ixOmin1^%1ixO^S,wAplus_) + w(ixOmin1^%1ixO^S,wAminus_)
-
-      !if (mod(it,1000)==0 .and. mype==0) then 
-      !  write(*,*)"B bot min ghost = ", w(ixOmin1,mag(1))
-      !  write(*,*)"B bot min ghost = ", w(ixOmin1,mag(1))
-      !  write(*,*)"B bot max cell  = ", w(ixOmax1+1,mag(1))
-      !end if
      
     case (2) ! Upper radial boundary
 
@@ -541,51 +452,21 @@ contains
       w(ixOmin1^%1ixO^S,wkplus_) = w(ixOmin1-1^%1ixO^S,wkplus_)
       w(ixOmax1^%1ixO^S,wkplus_) = w(ixOmin1-1^%1ixO^S,wkplus_)
 
-      !if (mod(it,10000) == 0 .and. mype == 7) then
-      !  write(*,*) 'w(ixOmin1^%1ixO^S,wkplus_) = ', w(ixOmin1^%1ixO^S,wkplus_)
-      !  write(*,*)'w(ixOmax1^%1ixO^S,wkplus_) = ', w(ixOmax1^%1ixO^S,wkplus_)
-      !  write(*,*)'w(ixOmax1+1^%1ixO^S,wkplus_) = ', w(ixOmin1-1^%1ixO^S,wkplus_)
-      !end if
-
       w(ixOmin1^%1ixO^S,wAminus_) = w(ixOmin1-1^%1ixO^S,wAminus_)
       w(ixOmax1^%1ixO^S,wAminus_) = w(ixOmin1-1^%1ixO^S,wAminus_)
 
       w(ixOmin1^%1ixO^S,wAplus_) = 0.d0! 5.d0*4.d-4
       w(ixOmax1^%1ixO^S,wAplus_) = 0.d0! 5.d0*4.d-4 
 
-      !vA_int(ixOmin1-10:ixOmax1) = dsqrt((20.d0/x(ixOmin1-10:ixOmax1,1)**2.d0)/w(ixOmin1-10:ixOmax1,rho_))
-      !call gradient(vA_int,ixI^L,ixO^L,ndim,gradvA_int)
-      !do ix1 = ixOmin1,ixOmax1
-      !  gradvA_int(ix1) = gradvA_int(ixOmin1-1)
-      !end do
-
-      !if (mod(it,5000)==0) then
-      !  write(*,*) "vA_int     = ", vA_int(ixOmin1-10:ixOmax1)
-      !  write(*,*) "gradvA_int = ", gradvA_int(ixOmin1-10:ixOmax1)
-      !  write(*,*) "ref term: ", ((w(ixOmin1-1,mom(1)) + vA_int(ixOmin1-1))/vA_int(ixOmin1-1))*gradvA_int(ixOmin1-1)*0.1d0*w(ixOmin1-1^%1ixO^S,wAminus_)
-      !end if
-
-      !w(ixOmin1^%1ixO^S,wAplus_) = ((w(ixOmin1-1,mom(1)) + vA_int(ixOmin1-1))/vA_int(ixOmin1-1))*gradvA_int(ixOmin1-1)*0.1d0*w(ixOmin1-1^%1ixO^S,wAminus_)   
-      !w(ixOmax1^%1ixO^S,wAplus_) = ((w(ixOmin1-1,mom(1)) + vA_int(ixOmin1-1))/vA_int(ixOmin1-1))*gradvA_int(ixOmin1-1)*0.1d0*w(ixOmin1-1^%1ixO^S,wAminus_)    
-
       call uawsom_get_pthermal(w,x,ixI^L,ixIM^L,pth)
-
-      ! Calculate Temp in the domain for use in updating density 
-      !Tmp(ixOmin1^%1ixO^S) = pth(ixOmin1-1^%1ixO^S)/w(ixOmin1-1^%1ixO^S,rho_)
 
       h1 = x(ixOmax1,1) - x(ixOmin1,1)
        
-      ! Pressure calculated by extending HSE into ghost cells 
-      !Pin(ixOmin1^%1ixO^S) = pth(ixOmin1-2^%1ixO^S) + usr_grav*(SRadius/x(ixOmin1-1^%1ixO^S,1))**2*(x(ixOmin1^%1ixO^S,1)-x(ixOmin1-2^%1ixO^S,1))*w(ixOmin1-1^%1ixO^S,rho_)
       Pin(ixOmin1^%1ixO^S) = pth(ixOmin1-2^%1ixO^S) + usr_grav*(SRadius/x(ixOmin1-1^%1ixO^S,1))**2*2.d0*h1*w(ixOmin1-1^%1ixO^S,rho_)
   
-      ! Old density update- Assumes isothermality at the boundary
-      !w(ixOmin1^%1ixO^S,rho_) = Pin(ixOmin1^%1ixO^S)/Tmp(ixOmin1^%1ixO^S)
-      !w(ixOmin1^%1ixO^S,rho_) = w(ixOmin1-1^%1ixO^S,rho_)
       w(ixOmin1^%1ixO^S,rho_) = w(ixOmin1-2^%1ixO^S,rho_) + 2*h1*usr_grav*(SRadius/x(ixOmin1-1^%1ixO^S,1))**2*w(ixOmin1-1^%1ixO^S,rho_)**2.d0/pth(ixOmin1-1^%1ixO^S)
 
       Tmp(ixOmin1^%1ixO^S) = Pin(ixOmin1^%1ixO^S)/w(ixOmin1^%1ixO^S,rho_)
-      !Tmp(ixOmin1^%1ixO^S) = pth(ixOmin1-1^%1ixO^S)/w(ixOmin1-1^%1ixO^S,rho_)
 
       ! Energy in the ghost cells does include wave energy TODO: Why now ok here and not earlier?    
       w(ixOmin1^%1ixO^S,e_) = Pin(ixOmin1^%1ixO^S)/(uawsom_gamma-1) + &
@@ -594,30 +475,11 @@ contains
                    w(ixOmin1^%1ixO^S,wkplus_) + w(ixOmin1^%1ixO^S,wkminus_) + &
                    w(ixOmin1^%1ixO^S,wAplus_) + w(ixOmin1^%1ixO^S,wAminus_)
 
-      ! TODO: Check this, I think in Norberts original this was only done once and not twice like you have now.
-      ! 10/12/24 - Checked NM original sim, this was only done once, since temp assumed isothermal I guess it does not 'need' to be done twice
+      Pin(ixOmax1^%1ixO^S) = pth(ixOmin1-1^%1ixO^S) + usr_grav*(SRadius/x(ixOmin1^%1ixO^S,1))**2*(x(ixOmax1^%1ixO^S,1)-x(ixOmin1-1^%1ixO^S,1))*w(ixOmin1^%1ixO^S,rho_)
       
-      !Pin(ixOmax1^%1ixO^S) = pth(ixOmin1-1^%1ixO^S) + usr_grav*(SRadius/x(ixOmin1^%1ixO^S,1))**2*(x(ixOmax1^%1ixO^S,1)-x(ixOmin1-1^%1ixO^S,1))*w(ixOmin1^%1ixO^S,rho_)
-      Pin(ixOmax1^%1ixO^S) = pth(ixOmin1-1^%1ixO^S) + usr_grav*(SRadius/x(ixOmin1-1^%1ixO^S,1))**2*(x(ixOmax1^%1ixO^S,1)-x(ixOmin1-1^%1ixO^S,1))*w(ixOmin1^%1ixO^S,rho_)
-      
-      ! Now w(ixOmin1^%1ixO^S,rho_) = w(ixImax1-1^%1ixO^S,rho_) hence the ixO notation above in Pin
-      
-      !Tmp(ixOmax1^%1ixO^S) = Pin(ixOmin1^%1ixO^S)/w(ixOmin1^%1ixO^S,rho_)
-      
-      ! Old density update
-      !w(ixOmax1^%1ixO^S,rho_) = Pin(ixOmax1^%1ixO^S)/Tmp(ixOmax1^%1ixO^S)
-      !w(ixOmax1^%1ixO^S,rho_) = w(ixOmin1-1^%1ixO^S,rho_)
       w(ixOmax1^%1ixO^S,rho_) = w(ixOmin1-1^%1ixO^S,rho_) + 2.d0*h1*usr_grav*(SRadius/x(ixOmin1-1^%1ixO^S,1))**2*w(ixOmin1^%1ixO^S,rho_)**2.d0/Pin(ixOmin1^%1ixO^S)
 
       Tmp(ixOmax1^%1ixO^S) = Pin(ixOmax1^%1ixO^S)/w(ixOmax1^%1ixO^S,rho_)
-      !Tmp(ixOmax1^%1ixO^S) = Tmp(ixOmin1^%1ixO^S)
-      !Tmp(ixOmax1^%1ixO^S) = Pin(ixOmin1^%1ixO^S)/w(ixOmin1^%1ixO^S,rho_)
-      !Tmp(ixOmax1^%1ixO^S) = Tmp(ixOmin1^%1ixO^S)
-
-      !if (mod(it,10000) == 0 .and. mype==7) then
-      !  write(*,*) 'T vals 1st cell, 1st ghost, top ghost'
-      !  write(*,*) '= ', pth(ixOmin1-1^%1ixO^S)/w(ixOmin1-1^%1ixO^S,rho_), Tmp(ixOmin1^%1ixO^S), Tmp(ixOmax1^%1ixO^S)
-      !end if
       
       w(ixOmax1^%1ixO^S,e_) = Pin(ixOmax1^%1ixO^S)/(uawsom_gamma-1) + &
                    0.5d0*(w(ixOmax1^%1ixO^S,mag(1))**2 + w(ixOmax1^%1ixO^S,mag(2))**2 + w(ixOmax1^%1ixO^S,mag(3))**2) + &
@@ -625,21 +487,12 @@ contains
                    w(ixOmax1^%1ixO^S,wkplus_) + w(ixOmax1^%1ixO^S,wkminus_) + &
                    w(ixOmax1^%1ixO^S,wAplus_) + w(ixOmax1^%1ixO^S,wAminus_) 
 
-      
-      !if (mod(it,1000)==0 .and. mype==7) then 
-      !  write(*,*)"e top min cell  = ", w(ixOmin1-1,e_)
-      !  write(*,*)"e top min ghost = ", w(ixOmin1,e_)
-      !  write(*,*)"e top max ghost = ", w(ixOmax1,e_)
-      !end if
-
       endif
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
     
   end subroutine specialbound_usr
-
-
 
   subroutine usrprocess_global(iit,qt)
     integer, intent(in)          :: iit
@@ -713,84 +566,6 @@ contains
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
 
-    !if (mod(it,10000)==0 .and. mype==0) then
-    !  write(*,*) "ixOmin1 = ", ixOmin1, ", ixImin1 = ", ixImin1
-    !  write(*,*) "ixOmax1 = ", ixOmax1, ", ixImax1 = ", ixImax1  
-    !end if
-    
-    !> Time dependent injection at the base 
-    !do ix1 = ixOmin1,ixOmin1+1
-    !  if (x(ix1,1) < 1+3.0d-5) then
-    !    w(ix1,wkminus_) = 4.d-4*(0.5d0*(1-tanh((qt-0.015d0)/0.001d0))) 
-    !    !w(ix1,wAminus_) = 2.d-4
-    !  end if 
-    !end do
-
-    !> Constant injection at the base 
-    !if (mod(it,1000)==0.and.mype==0)then
-    !  do ix1 = ixOmin1,ixOmin1+1
-    !    if (x(ix1,1) < 1+2.0d-4) then
-    !      write(*,*) 'Wkminus = ', w(ix1,wkminus_)
-    !    end if
-    !  end do
-    !end if
-
-    !do ix1 = ixOmin1,ixOmin1+1
-    !  if (x(ix1,1) < 1+2.0d-4) then
-    !    w(ix1,wkminus_) = 1.67d-2 !+ w(ix1,wkplus_)
-    !    w(ix1,wAminus_) = 1.67d-2 !+ w(ix1,wAplus_) !> Turn on or off Re-Reflected waves 
-    !    w(ix1,wAminus_) = 5.d0*1.23d-2 + w(ix1,wAplus_)
-    !    w(ix1,wkminus_) = 4.d-4 !+ w(ix1,wkplus_)
-    !    w(ix1,wAminus_) = 2.d-4 + w(ix1,wAplus_)
-    !    w(ix1,wkplus_) = 1.67d-2
-    !  end if 
-    !end do
-
-    !do ix1 = ixOmax1, ixOmax1+1
-    !  if (x(ix1,1) > xprobmax1-3.0d-4) then
-    !    w(ix1,wkplus_) = 0.005d0*1.67d-2
-    !  end if
-    !end do
-
-    !do ix1 = ixOmax1, ixOmax1+1
-    !  if (x(ix1,1) > xprobmax1-3.0d-4) then
-    !    w(ix1,wAplus_) = 1.d-7*1.67d-2 + 0.01d0*w(ix1,wAminus_)
-    !    w(ix1,wAplus_) = 0.d0
-    !  end if
-    !end do
-
-    !> data_velocity_reduction_layer_0_100_domain_SuperGaussian simulation
-    !do ix1 = ixOmin1, ixOmax1
-    !  if (x(ix1,1) > 1.1d0) then
-    !    w(ix1,mom(1)) = w(ix1,mom(1))*(1 - exp(-((x(ix1,1) - 1.12d0)/0.01d0)**8.d0))
-    !  end if
-    !end do
-
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + 0.01d0*qdt*exp(-(x(ixO^S,1)-1.0d0)**2/(0.002d0)**2)
-
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + 10.0d0*qdt*exp(-(x(ixO^S,1)-1.05d0)**2/(0.02d0)**2)*(0.5d0*(1-tanh((qt-0.002d0)/(0.01d0)**2)))
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + qdt*(0.5d0*(1-tanh(qt-3.d0)))*0.0125d0*exp(-(x(ixO^S,1)-1.d0)**2.d0/0.05d0**2.d0)
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + qdt*1.d0*exp(-(x(ixO^S,1)-1.0d0)**2/(0.002d0)**2)
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + 0.5d0*(1+tanh((qt-2.d0)/0.1d0))*qdt*exp(-(x(ixO^S,1)-1.02d0)**2/(0.02d0)**2)
-    !w(ixO^S,wkminus_) = w(ixO^S,wkminus_) + qdt*1.d0*exp(-(x(ixO^S,1)-xprobmin1)/(Heatscale/unit_length))
-
-    !w(ixO^S,wAminus_) = w(ixO^S,wAminus_) + 0.0d0*qdt*1.d0*exp(-(x(ixO^S,1)-1.03d0)**2/(0.02d0)**2)
-    !w(ixO^S,wAminus_) = w(ixO^S,wAminus_) + qdt*2.d0*exp(-(x(ixO^S,1)-1.005d0)**2/(0.04d0)**2)
-    !w(ixO^S,wAminus_) = w(ixO^S,wAminus_) + qdt*1.d0*exp(-(x(ixO^S,1)-xprobmin1)/(Heatscale/unit_length))
-
-    !> Velocity rewrite layer for inflows from top boundary 
-    !do ix1 = ixOmin1, ixOmax1
-    !  if (x(ix1,1)>1.14d0) then
-    !    w(ix1^%1ixO^S,mom(1)) = 0.d0
-    !  end if
-    !end do
-
-    !do ix1 = ixOmin1, ixOmax1
-    !  if (x(ix1,1)>1.14d0) then
-    !    w(ix1^%1ixO^S,mom(1)) = 0.5d0*(1+tanh((qt-2.d0)/0.1))*w(ix1^%1ixO^S,mom(1))
-    !  end if
-    !end do
-
   end subroutine special_source
 
   subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
@@ -802,41 +577,7 @@ contains
     double precision :: bQgrid(ixI^S), pth(ixI^S), Tmp(ixO^S), tau(ixO^S)
     double precision, save :: qt0 = 0.0, fqt = 0.0, rr(50)
 
-    !integer :: i
-    !logical, save :: firstqt=.true.
- 
-    !if (floor(500*fqt+1) .ne. floor(500*qt+1)) then
-    !   firstqt = .true.
-    !endif
-    
-    !fqt = qt
-    
-    !if (firstqt) then
-    ! call rng%unif_01_vec(rr)
-    ! rr = rr*2.d0+1.d0
-    ! firstqt = .false.
-    ! qt0 = qt
-    !endif
-
-    bQgrid(ixO^S) = 0.5d0*bQ0*dexp(-(x(ixO^S,1)-xprobmin1)/(Heatscale/unit_length))*0.5d0*(1-tanh((qt-2.5d0)/0.25d0))
-    !bQgrid(ixO^S) = 0.5d0*bQ0*dexp(-(x(ixO^S,1)-xprobmin1)/(0.01d0))
-    
-    !call uawsom_get_pthermal(w,x,ixI^L,ixI^L,pth)
-    !Tmp(ixO^S) = pth(ixO^S)/w(ixO^S,rho_)
-    
-    !where(Tmp(ixO^S) < 1.d4/unit_temperature) 
-    !  tau(ixO^S) = exp(-(x(ixO^S,1)-1.d0)/Hr)
-    !  bQgrid(ixO^S) = 5.d-2*(1.d0 - exp(-tau(ixO^S)/0.1d0))*4.d0*tau(ixO^S)/Hr*stefboltz*(0.75d0*0.0058d0**4*(tau(ixO^S) +&
-    !                  0.71d0-0.133d0/(1.d0 + 0.15d0*tau(ixO^S)**0.73d0)**17.4d0) - Tmp(ixO^S)**4.d0)
-    !endwhere
- 
-    !bQgrid(ixO^S)=bQ0*dexp(-(x(ixO^S,1)-xprobmin1)/(Heatscale/unit_length))*&
-    !                  0.5d0*(1.d0-tanh(qt-3.d0))
-    
-    !do i=1,50
-    !  bQgrid(ixO^S) = bQgrid(ixO^S) + 1.d-2*dexp(-(x(ixO^S,1)-xprobmin1))*dexp(-((x(ixO^S,1)-rr(i))**2)/(0.01d0)**2)*&
-    !                  exp(-(qt-qt0-(2.d-3*(rr(i)-1.25d0)))**2/4.d-6) 
-    !end do
+    bQgrid(ixO^S) = 0.0d0*bQ0*dexp(-(x(ixO^S,1)-xprobmin1)/(Heatscale/unit_length))*0.5d0*(1-tanh((qt-2.5d0)/0.25d0))
 
   end subroutine getbQ
 
@@ -872,7 +613,7 @@ contains
     double precision :: pth(ixI^S),B2(ixI^S),tmp2(ixI^S),dRdT(ixI^S)
     double precision :: ens(ixI^S),divb(ixI^S),wlocal(ixI^S,1:nw)
     double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir), zeta(ixI^S), radius(ixI^S), Lperp_AW(ixI^S), Lperp(ixI^S), Gamma_plus(ixI^S), Gamma_minus(ixI^S)
-    double precision :: Te(ixI^S),tco_local
+    double precision :: Te(ixI^S),tco_local, ff
     double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
     integer :: idirmin,idir,ix^D
     logical :: lrlt(ixI^S)
@@ -924,25 +665,21 @@ contains
 
     !call getggrav(ggrid,ixI^L,ixO^L,x)
 
-    Lperp_AW(ixO^S) = (1/6.961d10) * 1.5d5 * 1.0d2 * 1.0d2 * (Te(ixO^S) / Btotal(ixO^S,1))**0.5d0 
+    Lperp_AW(ixO^S) = (1.0d10/6.961d10) * (1.0d0 / Btotal(ixO^S,1))**0.5d0 
     Gamma_plus(ixO^S) = (2.0d0 / Lperp_AW(ixO^S)) * (w(ixO^S, wAminus_)/w(ixO^S,rho_))**0.5d0
     Gamma_minus(ixO^S) = (2.0d0 / Lperp_AW(ixO^S)) * (w(ixO^S, wAplus_)/w(ixO^S,rho_))**0.5d0
 
     w(ixO^S,nw+16) = Gamma_plus(ixO^S)*w(ixO^S,wAplus_) + Gamma_minus(ixO^S)*w(ixO^S,wAminus_)
 
-    !ff = 0.1d0
+    ff = 0.1d0
     
     call get_zeta(w,x,ixI^L,ixO^L,zeta)
 
-    radius(ixO^S) = 1.d8/unit_length * ((Busr/unit_magneticfield)/Btotal(ixO^S,1))**0.5d0 !Radius = R_0*(B0/B)^0.5 TVD 2025 paper uses R_0 = 1Mm (1e8 cm)
+    radius(ixO^S) = 1.d8/unit_length * ((Busr/unit_magneticfield)/Btotal(ixO^S,1))**0.5d0
 
     Lperp(ixO^S) = (zeta(ixO^S) + 1.d0 - ff)**(3.d0/2.d0)/(1.d0 - ff**(5.d0/2.d0))/&
                    (zeta(ixO^S) - 1.d0)*3.1622776*(ff*dpi)**0.5d0*radius(ixO^S) 
                 
-    !if (mype==0 .and. mod(it,10000)==0) then  
-    !  write(*,*) "Lperp = ", Lperp(ixOmin1:ixOmin1+10)
-    !end if
-
     w(ixO^S,nw+17) = w(ixO^S,wkplus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+ff*zeta(ixO^S)-ff)**(-1.d0))**0.5d0/Lperp(ixO^S) + w(ixO^S,wkminus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+ff*zeta(ixO^S)-ff)**(-1.d0))**0.5d0/Lperp(ixO^S)
 
   end subroutine specialvar_output
