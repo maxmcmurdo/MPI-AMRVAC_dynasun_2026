@@ -613,7 +613,7 @@ contains
     double precision :: pth(ixI^S),B2(ixI^S),tmp2(ixI^S),dRdT(ixI^S)
     double precision :: ens(ixI^S),divb(ixI^S),wlocal(ixI^S,1:nw)
     double precision :: Btotal(ixI^S,1:ndir),curlvec(ixI^S,1:ndir), zeta(ixI^S), radius(ixI^S), Lperp_AW(ixI^S), Lperp(ixI^S), Gamma_plus(ixI^S), Gamma_minus(ixI^S)
-    double precision :: Te(ixI^S),tco_local, ff
+    double precision :: Te(ixI^S),tco_local
     double precision, dimension(ixI^S,1:ndim) :: gradT, bunitvec
     integer :: idirmin,idir,ix^D
     logical :: lrlt(ixI^S)
@@ -670,8 +670,6 @@ contains
     Gamma_minus(ixO^S) = (2.0d0 / Lperp_AW(ixO^S)) * (w(ixO^S, wAplus_)/w(ixO^S,rho_))**0.5d0
 
     w(ixO^S,nw+16) = Gamma_plus(ixO^S)*w(ixO^S,wAplus_) + Gamma_minus(ixO^S)*w(ixO^S,wAminus_)
-
-    ff = 0.1d0
     
     call get_zeta(w,x,ixI^L,ixO^L,zeta)
 
