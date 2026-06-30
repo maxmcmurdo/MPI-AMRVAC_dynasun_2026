@@ -1,0 +1,88 @@
+!==============================================================
+! Project : 2.5D MHD solar atmosphere in bipolar magnetic field
+! Aim     : serve as a basic model for solar applications
+! Results :
+! Update  : 10/02/2017
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!==============================================================
+
+ &filelist
+base_filename='data_test/frame_'
+        saveprim=.true.
+        autoconvert=.true.
+        convert_type='teclinempi'
+        nwauxio=17
+/
+        restart_from_file='data_AW_only_test/frame_0031.dat'
+        snapshotnext=32
+
+ /
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.01d0
+        dtsave_dat=0.1d0
+        !ditsave_dat = 200
+ /
+ &stoplist
+        !it_max = 5000
+        dtmin=1.D-8
+        time_max=1.0d0
+ /
+ &methodlist
+        time_stepper=  'fourstep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'cada3'
+        small_pressure=1.0d-10
+        small_density=1.0d-8
+        check_small_values=.true.
+        fix_small_values=.false.
+        small_values_method='error'
+ /
+ &boundlist
+	typeboundary_min1 = 12*'special'
+        typeboundary_max1 = 12*'special'
+ /
+ &meshlist
+        refine_criterion=0
+        refine_max_level=1
+        block_nx1=128
+        domain_nx1=1024
+        xprobmin1=1.d0
+        xprobmax1=1.2153d0 
+        stretch_dim(1) = 'none'
+        !qstretch_baselevel = 1.002
+        !qstretch_baselevel = 1.0142
+        !qstretch_baselevel = 1.00142
+        !qstretch_baselevel = 1.00142
+        iprob = 1
+ /
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+ &uawsom_list
+        uawsom_thermal_conduction=.true.
+        uawsom_radiative_cooling=.true.
+        uawsom_gravity=.true.
+        typedivbfix='none'
+        Busr=20.0d0
+        B0field=.true.
+        uawsom_trac=.false.
+        uawsom_trac_type = 2
+ /
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+	tc_slope_limiter='MC'
+
+ /
+ &rc_list
+        ncool=4000
+        coolcurve='Dere_corona_DM'
+        !coolcurve='JCcorona'
+        coolmethod='exact'
+        Tfix=.false.
+        tlow=0.005d0
+ /

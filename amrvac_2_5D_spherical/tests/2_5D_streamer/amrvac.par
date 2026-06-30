@@ -1,0 +1,75 @@
+ &filelist
+
+        base_filename = 'data_test/B1T25_50Rs_AMR2_'
+        autoconvert   = .false.
+        convert_type='vtuBCCmpi'
+        saveprim=.true.
+        nwauxio=13
+        nocartesian=.false.
+/
+        restart_from_file='data_zeta_5/B1T25_50Rs_AMR2_0065.dat'
+	snapshotnext=66
+/
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        dtsave_log    = 0.01d0
+	dtsave_dat    = 1.0d0
+       
+ /
+	dtsave_dat    = 2.5873d0 ! Every 10 Hours For Testing
+/
+ &stoplist
+        time_max          =1034.92d0 ! 1000 Hours For Testing
+ /
+
+ &methodlist
+        time_stepper   = 'twostep'
+        flux_scheme     = 20*'tvdlf'!20*'tvdlf'     !initial era 20*'hll'
+        limiter  = 20*'minmod'  !initial era 20*'koren'
+       
+
+        small_values_method = 'average'
+
+!        small_pressure = 1.0d-15
+!        small_density = 1.0d-15
+
+        
+ /
+
+ &boundlist
+        typeboundary_min1=8*'special',4*'special' !> set injection value
+        typeboundary_max1=8*'special',4*'special' !> outflow of wave energy 
+        typeboundary_min2='symm','symm','asymm','asymm','symm','symm','asymm','asymm',4*'symm'
+        typeboundary_max2='symm','symm','asymm','asymm','symm','symm','asymm','asymm',4*'symm'
+ / 
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=240
+        domain_nx2=120
+        xprobmin1=1.d0
+        xprobmax1=50.d0
+        xprobmin2=0.d0
+        xprobmax2=0.5d0
+!        max_blocks=400000
+        stretch_dim(1)='uni'
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.5d0
+ /
+
+ &uawsom_list
+        typedivbfix   = 'glm'!'glm'     ! initial era powel     
+!       uawsom_glm=.true.
+        boundary_divbfix(1)=.false.
+        boundary_divbfix(2)=.false.
+        boundary_divbfix(3)=.false.
+        boundary_divbfix(4)=.false.
+ /
